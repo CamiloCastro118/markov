@@ -82,6 +82,12 @@
     .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eaf9ef;color:var(--verde-oscuro);font-weight:700}
     .alert-badge{display:inline-block;padding:6px 8px;border-radius:999px;background:#fff1f2;color:#9b1c1c;font-weight:700;border:1px solid #fca5a5}
 
+    /* Leyenda de estados */
+    .state-legend{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .state-legend .item{display:flex;align-items:flex-start;gap:10px}
+    .state-legend .swatch{width:14px;height:14px;border-radius:4px;flex:0 0 14px;margin-top:4px;border:1px solid rgba(0,0,0,0.06)}
+    .state-legend .text{font-size:13px;color:var(--muted)}
+
     /* canvas responsiveness */
     canvas{width:100% !important;height:auto !important}
 
@@ -113,6 +119,16 @@
       <li>Probabilidad acumulada de default en el horizonte seleccionado.</li>
       <li>Simulacion y graficos (distribucion por tiempo).</li>
     </ul>
+    <h3 style="margin-top:12px">Significado de los estados</h3>
+    <div class="state-legend" aria-hidden="false">
+      <div class="item"><span class="swatch" style="background:#0b662a"></span><div class="text"><strong>AAA:</strong> Riesgo minimo, calidad crediticia excelente.</div></div>
+      <div class="item"><span class="swatch" style="background:#1f8f46"></span><div class="text"><strong>AA:</strong> Muy bajo riesgo, casi tan buena como AAA.</div></div>
+      <div class="item"><span class="swatch" style="background:#f97316"></span><div class="text"><strong>A:</strong> Buena calidad, riesgo bajo.</div></div>
+      <div class="item"><span class="swatch" style="background:#0ea5e9"></span><div class="text"><strong>BBB:</strong> Riesgo moderado, aun considerado grado de inversion.</div></div>
+      <div class="item"><span class="swatch" style="background:#8b5cf6"></span><div class="text"><strong>BB:</strong> Grado especulativo, riesgo elevado.</div></div>
+      <div class="item"><span class="swatch" style="background:#f7c948"></span><div class="text"><strong>B:</strong> Riesgo alto de incumplimiento.</div></div>
+      <div class="item"><span class="swatch" style="background:#ef4444"></span><div class="text"><strong>D:</strong> Default, el deudor no puede pagar (estado final o absorbente).</div></div>
+    </div>
   </section>
 
   <div class="grid">
@@ -154,17 +170,12 @@
       <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
         <label for="umbral" style="font-size:13px;margin-right:6px">Umbral alerta (%):</label>
         <input id="umbral" type="number" value="5" min="0" max="100" step="0.1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #e3e8ef" />
-        <label for="paleta-select" style="font-size:13px;margin-left:6px;margin-right:6px">Paleta:</label>
-        <select id="paleta-select" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef">
-          <option value="verde" selected>Verde profesional</option>
-          <option value="contrastada">Paleta contrastada</option>
-        </select>
+        <!-- Paleta fija: contrastada (selector removido) -->
         <button class="btn" id="btn-export">Exportar CSV</button>
         <button class="btn" id="btn-pdf">Descargar PDF</button>
-        <label for="logo-url" style="font-size:13px;margin-left:8px">Logo (URL):</label>
-        <input id="logo-url" type="text" placeholder="https://.../logo.png" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef;width:220px" />
-        <label for="firma-text" style="font-size:13px;margin-left:8px">Firma:</label>
-        <input id="firma-text" type="text" placeholder="Nombre o cargo" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef;width:180px" />
+        <label for="firma-text" style="font-size:13px;margin-left:8px">Firma (nombre o cargo — se añadira al PDF):</label>
+        <input id="firma-text" type="text" placeholder="Ej: Juan Perez, Gerente de Riesgo" style="padding:10px 12px;border-radius:8px;border:1px solid #e3e8ef;width:320px;font-size:14px" />
+        <small style="color:#6b7280;margin-left:6px;display:block;margin-top:6px">Ingrese nombre y cargo; esto aparecera como firma en el PDF.</small>
         <small style="color:#475569;margin-left:8px">(descarga la tabla de probabilidades)</small>
       </div>
 
@@ -180,6 +191,16 @@
       <canvas id="chart-line" height="220"></canvas>
       <h4 style="margin-top:12px">Distribucion final</h4>
       <canvas id="chart-doughnut" height="220"></canvas>
+      <!-- Leyenda de estados con colores (coincide con paleta contrastada usada en graficos) -->
+      <div class="state-legend" aria-hidden="false">
+        <div class="item"><span class="swatch" style="background:#0b662a"></span><div class="text"><strong>AAA:</strong> Riesgo minimo, calidad crediticia excelente.</div></div>
+        <div class="item"><span class="swatch" style="background:#1f8f46"></span><div class="text"><strong>AA:</strong> Muy bajo riesgo, casi tan buena como AAA.</div></div>
+        <div class="item"><span class="swatch" style="background:#f97316"></span><div class="text"><strong>A:</strong> Buena calidad, riesgo bajo.</div></div>
+        <div class="item"><span class="swatch" style="background:#0ea5e9"></span><div class="text"><strong>BBB:</strong> Riesgo moderado, aun considerado grado de inversion.</div></div>
+        <div class="item"><span class="swatch" style="background:#8b5cf6"></span><div class="text"><strong>BB:</strong> Grado especulativo, riesgo elevado.</div></div>
+        <div class="item"><span class="swatch" style="background:#f7c948"></span><div class="text"><strong>B:</strong> Riesgo alto de incumplimiento.</div></div>
+        <div class="item"><span class="swatch" style="background:#ef4444"></span><div class="text"><strong>D:</strong> Default, el deudor no puede pagar (estado final o absorbente).</div></div>
+      </div>
     </aside>
   </div>
 
@@ -324,23 +345,7 @@ async function generarPDF(historia, estados, horizonte){
     const doc = new jsPDF({unit:'mm', format:'a4'});
     let y = 14;
 
-    // incluir logo (si URL provista)
-    const logoUrl = document.getElementById('logo-url')?.value?.trim();
-    if(logoUrl){
-      try{
-        // cargar imagen y convertir a dataURL
-        const resp = await fetch(logoUrl);
-        const blob = await resp.blob();
-        const img = await new Promise((res,rej)=>{
-          const reader = new FileReader();
-          reader.onload = ()=>res(reader.result);
-          reader.onerror = rej;
-          reader.readAsDataURL(blob);
-        });
-        // anadir logo (lado izquierdo)
-        doc.addImage(img, 'PNG', 14, 8, 30, 20);
-      }catch(e){ console.warn('No se pudo cargar logo:', e); }
-    }
+    // Nota: la opcion de logo fue removida; solo se incluye texto de firma si se proporciona.
 
     // Encabezado
     doc.setFontSize(16);
@@ -400,11 +405,14 @@ async function generarPDF(historia, estados, horizonte){
     const texto = pDefault < 0.01 ? 'Interpretacion: Bajo riesgo de default.' : (pDefault < 0.05 ? 'Interpretacion: Riesgo moderado, considerar seguimiento.' : 'Interpretacion: Riesgo alto — evaluar medidas de mitigacion.');
     doc.text(texto, 14, y + 8);
 
-    // firma (si provista)
+    // firma (si provista): aumentar tamano en el PDF
     const firma = document.getElementById('firma-text')?.value?.trim();
     if(firma){
+      doc.setFontSize(11);
       doc.text('Atentamente,', 140, y + 30);
-      doc.text(firma, 140, y + 38);
+      doc.setFontSize(12);
+      doc.text(firma, 140, y + 44);
+      doc.setFontSize(10);
     }
 
     // Guardar
@@ -416,8 +424,7 @@ function actualizarGraficos(historia, estados){
   // historia: array de vectores distribucion por año [vectorYear0, vectorYear1, ...]
   const etiquetas = Array.from({length:historia.length},(_,i)=>i+' año(s)');
   // elegir paleta según selector (verde por defecto o palette contrastada)
-  const palSelector = document.getElementById('paleta-select');
-  const palType = palSelector ? palSelector.value : 'verde';
+  const palType = 'contrastada';
   let palette;
   if(palType === 'contrastada'){
     // paleta contrastada: mezclas de verde, azul, naranja y morado para distinguir series
@@ -600,13 +607,7 @@ if(btnExport){
   });
 }
 
-// Cuando el usuario cambie la paleta, re-renderizar los graficos con la nueva paleta si ya hay resultados
-const palSelector = document.getElementById('paleta-select');
-if(palSelector){
-  palSelector.addEventListener('change', ()=>{
-    if(lastHistoria && lastEstados) actualizarGraficos(lastHistoria, lastEstados);
-  });
-}
+// La paleta se fija a 'contrastada' (selector eliminado)
 
 // Handler PDF
 const btnPdf = document.getElementById('btn-pdf');

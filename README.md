@@ -13,7 +13,7 @@ Resumen de funcionalidades
 - Resumen visual con probabilidad de default y una interpretacion sencilla (Bajo / Moderado / Alto).
 - Control `Umbral alerta (%)` para marcar advertencias cuando la probabilidad supera el umbral.
 - Selector de `Paleta` para elegir colores de visualizacion.
-- Exportar resultados a CSV y descargar un informe en PDF (incluye tabla y graficos). Puedes anadir un logo (URL) y texto de firma para el PDF.
+- Exportar resultados a CSV y descargar un informe en PDF (incluye tabla y graficos). Puedes anadir texto de firma para el PDF.
 
 Explicacion simple del modelo
 - Estados: por defecto la app usa `AAA, AA, A, BBB, BB, B, D` (D = default).
@@ -43,7 +43,7 @@ Pasos basicos para usar la app (rapido)
 4. Opcional: ajustar `Umbral alerta (%)` y la `Paleta` de colores.
 5. Pulsar `Calcular probabilidades`.
 6. Revisar la `Tabla de probabilidades por ano` y los graficos.
-7. Exportar: usa `Exportar CSV` para descargar la tabla o `Descargar PDF` para generar un informe (puedes anadir logo URL y texto de firma antes de generar el PDF).
+7. Exportar: usa `Exportar CSV` para descargar la tabla o `Descargar PDF` para generar un informe (puedes anadir texto de firma antes de generar el PDF).
 
 Interpretacion de resultados (facil)
 - La `Tabla por ano` muestra la probabilidad de estar en cada estado en cada ano del horizonte.
@@ -60,7 +60,7 @@ Generar PDF
 Problemas comunes y soluciones
 - Las filas de la matriz NO suman 1: la app muestra un error. Corrige la fila para que la suma sea 1.00 (o muy cercana).
 - Imposible capturar graficos en el PDF: algunos navegadores bloquean la conversión a imagen por politicas de CORS si recursos externos estan involucrados. Solucion: usa recursos locales o abre la pagina desde un servidor local.
-- Logo no aparece en PDF: verifica que la URL sea publica y permita CORS, o coloca un archivo `logo.png` en la misma carpeta y usa `./logo.png` como URL.
+- (Nota) La opcion de incluir un logo en el PDF fue removida; solo se admite texto de firma en la version actual.
 
 Detalles tecnicos
 - Librerias usadas via CDN: `Chart.js`, `jsPDF` y `jsPDF-AutoTable`.
