@@ -58,6 +58,7 @@
     .card h2{margin:0 0 10px 0;font-size:18px}
     .card p{color:var(--muted);margin:6px 0}
     label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
+    nav ul{flex-wrap:wrap}
     input[type=number], textarea, select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;margin-top:8px;font-size:14px}
     textarea{font-family:inherit}
 
@@ -91,10 +92,27 @@
     /* canvas responsiveness */
     canvas{width:100% !important;height:auto !important}
 
+    /* Helpers para layout de controles */
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
     /* responsive */
     @media (max-width:980px){
       .grid{grid-template-columns:1fr;}
       .resumen{flex-direction:column;align-items:flex-start}
+    }
+
+    /* Ajustes para pantallas pequeñas */
+    @media (max-width:600px){
+      .card{padding:12px}
+      .actions button, .controls .btn{width:100%}
+      input[type=number], textarea, select, .controls input[type=text]{width:100%}
+      #chart-line, #chart-doughnut{height:180px !important}
+      .resumen-valor{font-size:28px}
+      nav .logo{font-size:16px}
+      .state-legend{gap:6px}
+      .state-legend .item{align-items:center}
+      .state-legend .text{font-size:13px}
     }
   </style>
   <div class="contenedor">
@@ -162,13 +180,13 @@
 0.00,0.00,0.00,0.04,0.12,0.70,0.14
 0.00,0.00,0.00,0.00,0.00,0.00,1.00</textarea>
 
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div class="actions" style="margin-top:10px;display:flex;gap:8px">
         <button class="btn" id="btn-calcular">Calcular probabilidades</button>
         <button class="btn" id="btn-simular">Simular trayectoria</button>
         <button class="btn" id="btn-reset">Restablecer ejemplo</button>
       </div>
 
-      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+      <div class="controls" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <label for="umbral" style="font-size:13px;margin-right:6px">Umbral alerta (%):</label>
         <input id="umbral" type="number" value="5" min="0" max="100" step="0.1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #e3e8ef" />
         <!-- Paleta fija: contrastada (selector removido) -->
