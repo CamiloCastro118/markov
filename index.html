@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modelado de Riesgo Crediticio — Cadenas de Markov</title>
+  <!-- CDN Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF para exportar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- jsPDF AutoTable plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap">
+  <style>
+    :root{
+      /* Paleta verde profesional */
+      --primary-900:#072712;
+      --verde-oscuro:#0b662a; /* primario */
+      --verde-500:#1f8f46; /* secundario */
+      --verde-300:#66c28a; /* acento */
+      --accent:#f7c948;
+      --fondo:#f6f9f7;
+      --card-bg:#ffffff;
+      --muted:#6b7280;
+      --texto:#062015;
+      --radius:12px;
+      --glass: rgba(255,255,255,0.6);
+    }
+
+    /* Reset visual y tipografia */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: linear-gradient(180deg,var(--fondo),#ffffff);
+      color:var(--texto);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+    }
+
+    header{
+      background:linear-gradient(90deg,var(--verde-oscuro),var(--verde-500));
+      color:white;padding:20px 28px;position:sticky;top:0;z-index:20;
+      box-shadow:0 6px 18px rgba(5,40,22,0.12);
+    }
+
+    .contenedor{max-width:1200px;margin:24px auto;padding:0 20px}
+    nav{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    nav .logo{font-weight:800;letter-spacing:0.2px;font-size:18px}
+    nav ul{list-style:none;display:flex;gap:10px;margin:0;padding:0}
+    nav a{color:white;text-decoration:none;padding:8px 12px;border-radius:10px;font-weight:600;opacity:0.95}
+    nav a:hover{background:rgba(255,255,255,0.06)}
+
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:20px;margin-top:20px;align-items:start}
+    .card{background:var(--card-bg);border-radius:var(--radius);padding:18px;box-shadow:0 8px 30px rgba(11,51,25,0.06);border:1px solid rgba(15,68,42,0.04)}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .card p{color:var(--muted);margin:6px 0}
+    label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
+    input[type=number], textarea, select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;margin-top:8px;font-size:14px}
+    textarea{font-family:inherit}
+
+    .btn{background:linear-gradient(90deg,var(--verde-500),var(--verde-300));color:white;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;box-shadow:0 8px 22px rgba(15,68,42,0.08);font-weight:700}
+    .btn.secondary{background:transparent;color:var(--verde-500);border:1px solid rgba(31,143,70,0.08);box-shadow:none}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(1px)}
+
+    table{width:100%;border-collapse:collapse;margin-top:12px;background:transparent}
+    thead th{background:linear-gradient(180deg,#f8faf8,#ffffff);text-align:left;padding:10px;border-bottom:1px solid #eef3fb;color:var(--muted);font-weight:700}
+    tbody td{padding:10px;border-bottom:1px solid #f1f6f3}
+    tbody tr:hover{background:linear-gradient(90deg, rgba(31,143,70,0.02), rgba(255,255,255,0));}
+    small{color:var(--muted)}
+
+    footer{text-align:center;padding:20px;color:var(--muted);margin-top:26px}
+
+    /* Resumen */
+    .resumen{display:flex;align-items:center;gap:16px;padding:14px;border-radius:10px;background:linear-gradient(90deg,rgba(31,143,70,0.04),rgba(255,255,255,0.02));border:1px solid rgba(31,143,70,0.06)}
+    .resumen-valor{font-size:34px;font-weight:800;color:var(--verde-500)}
+    .resumen-text{font-size:14px;color:var(--texto)}
+    .resumen-mensaje{font-size:13px;color:#2b3b2f}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eaf9ef;color:var(--verde-oscuro);font-weight:700}
+    .alert-badge{display:inline-block;padding:6px 8px;border-radius:999px;background:#fff1f2;color:#9b1c1c;font-weight:700;border:1px solid #fca5a5}
+
+    /* canvas responsiveness */
+    canvas{width:100% !important;height:auto !important}
+
+    /* responsive */
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr;}
+      .resumen{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+  <div class="contenedor">
+    <nav>
+      <div class="logo">Markov Risk</div>
+      <ul>
+        <li><a href="#explicacion">Explicacion</a></li>
+        <li><a href="#modelo">Modelo</a></li>
+        <li><a href="#simulador">Simulador</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main class="contenedor">
+  <section id="explicacion" class="card">
+    <h2>Breve explicacion</h2>
+    <p>En este proyecto se modelan las calificaciones crediticias como <strong>estados</strong> de una cadena de Markov discreta. Cada estado representa una categoria de rating (por ejemplo: AAA, AA, A, BBB, BB, B, D donde <em>D</em> es default). A partir de una matriz de transicion anualizada, podemos calcular la probabilidad de que un cliente entre en <strong>default</strong> en un horizonte de tiempo dado (1 ano, 3 anos, 5 anos, ...).</p>
+    <p>La interfaz permite editar la matriz de transicion, elegir el estado inicial y obtener:</p>
+    <ul>
+      <li>Probabilidades de estar en cada estado tras n pasos.</li>
+      <li>Probabilidad acumulada de default en el horizonte seleccionado.</li>
+      <li>Simulacion y graficos (distribucion por tiempo).</li>
+    </ul>
+  </section>
+
+  <div class="grid">
+    <section id="modelo" class="card">
+      <h2>Modelo y datos de ejemplo</h2>
+      <p><small>Estados usados por defecto: <strong>AAA, AA, A, BBB, BB, B, D</strong> (D = default)</small></p>
+
+      <label for="estado-inicial">Estado inicial</label>
+      <select id="estado-inicial">
+        <option value="0">AAA</option>
+        <option value="1">AA</option>
+        <option value="2" selected>A</option>
+        <option value="3">BBB</option>
+        <option value="4">BB</option>
+        <option value="5">B</option>
+        <option value="6">D (default)</option>
+      </select>
+
+      <label for="horizonte">Horizonte (años)</label>
+      <input id="horizonte" type="number" value="3" min="1" max="30" />
+
+      <h3>Matriz de transicion anual (ejemplo)</h3>
+      <p><small>Cada fila suma 1.0. Ultima columna (D) es probabilidad de pasar a default.</small></p>
+
+      <textarea id="matriz-textarea" rows="8">0.90,0.07,0.02,0.00,0.00,0.00,0.01
+0.03,0.88,0.07,0.01,0.00,0.00,0.01
+0.01,0.06,0.85,0.06,0.01,0.00,0.01
+0.00,0.02,0.07,0.78,0.10,0.02,0.01
+0.00,0.00,0.02,0.08,0.75,0.12,0.03
+0.00,0.00,0.00,0.04,0.12,0.70,0.14
+0.00,0.00,0.00,0.00,0.00,0.00,1.00</textarea>
+
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn" id="btn-calcular">Calcular probabilidades</button>
+        <button class="btn" id="btn-simular">Simular trayectoria</button>
+        <button class="btn" id="btn-reset">Restablecer ejemplo</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <label for="umbral" style="font-size:13px;margin-right:6px">Umbral alerta (%):</label>
+        <input id="umbral" type="number" value="5" min="0" max="100" step="0.1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #e3e8ef" />
+        <label for="paleta-select" style="font-size:13px;margin-left:6px;margin-right:6px">Paleta:</label>
+        <select id="paleta-select" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef">
+          <option value="verde" selected>Verde profesional</option>
+          <option value="contrastada">Paleta contrastada</option>
+        </select>
+        <button class="btn" id="btn-export">Exportar CSV</button>
+        <button class="btn" id="btn-pdf">Descargar PDF</button>
+        <label for="logo-url" style="font-size:13px;margin-left:8px">Logo (URL):</label>
+        <input id="logo-url" type="text" placeholder="https://.../logo.png" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef;width:220px" />
+        <label for="firma-text" style="font-size:13px;margin-left:8px">Firma:</label>
+        <input id="firma-text" type="text" placeholder="Nombre o cargo" style="padding:8px;border-radius:8px;border:1px solid #e3e8ef;width:180px" />
+        <small style="color:#475569;margin-left:8px">(descarga la tabla de probabilidades)</small>
+      </div>
+
+      <div id="resultados" style="margin-top:12px"></div>
+
+      <h3>Tabla de probabilidades por año</h3>
+      <div id="tabla-resultados"></div>
+
+    </section>
+
+    <aside class="card">
+      <h2>Visualizaciones</h2>
+      <canvas id="chart-line" height="220"></canvas>
+      <h4 style="margin-top:12px">Distribucion final</h4>
+      <canvas id="chart-doughnut" height="220"></canvas>
+    </aside>
+  </div>
+
+  <section id="simulador" class="card" style="margin-top:18px">
+    <h2>Explicacion paso a paso (facil)</h2>
+    <p>1. Ajusta la matriz si tienes datos historicos de transiciones entre ratings.</p>
+    <p>2. Selecciona el estado inicial (la calificacion actual del cliente).</p>
+    <p>3. Indica el horizonte en anos.</p>
+    <p>4. Pulsa "Calcular probabilidades" para obtener la probabilidad de default en ese horizonte y la distribucion de estados año a año.</p>
+
+    <h3>Interpretacion simple</h3>
+    <p>Si la probabilidad de default en 3 anos desde estado <em>A</em> resulta 0.04 (4%), significa que hay un 4% de probabilidad de que el cliente llegue al estado <strong>D</strong> (default) durante esos 3 anos, segun el modelo de Markov y la matriz que ingresaste.</p>
+
+    <h3>Exportar resultados</h3>
+    <p>Puedes copiar la tabla de resultados o capturar la pantalla. Para un uso profesional es recomendable exportar la matriz y los resultados a CSV (se puede anadir facilmente).</p>
+  </section>
+
+  <footer class="card">
+    <small>Proyecto educativo — Codigo abierto. Puedes usar este archivo directamente en GitHub Pages. Comentarios y variables en espanol para facilitar su comprension.</small>
+  </footer>
+</main>
+
+<script>
+// ======= Funciones de utilidad (comentarios en espanol) ========
+// Parsear la matriz desde el textarea (filas separadas por \n, columnas por ,)
+function parsearMatriz(texto){
+  const filas = texto.trim().split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  const matriz = filas.map(f => f.split(',').map(x=>parseFloat(x.trim())));
+  return matriz;
+}
+
+// Multiplicacion de matrices (A x B)
+function multiplicarMatrices(A,B){
+  const n=A.length, m=B[0].length, p=A[0].length;
+  const C = Array.from({length:n},()=>Array(m).fill(0));
+  for(let i=0;i<n;i++) for(let k=0;k<p;k++) if (A[i][k]!==0) for(let j=0;j<m;j++) C[i][j]+=A[i][k]*B[k][j];
+  return C;
+}
+
+// Elevar matriz de transicion a la potencia n (potencia por repeticion)
+function potenciaMatriz(P,n){
+  // asumir P es cuadrada
+  const dim=P.length;
+  // inicializar como identidad
+  let resultado = Array.from({length:dim},(_,i)=>Array.from({length:dim},(_,j)=>i===j?1:0));
+  let base = P.map(r=>r.slice());
+  let exp = n;
+  while(exp>0){
+    if(exp%2===1) resultado = multiplicarMatrices(resultado, base);
+    base = multiplicarMatrices(base, base);
+    exp=Math.floor(exp/2);
+  }
+  return resultado;
+}
+
+// Sumar elementos de una fila
+function sumaFila(f){ return f.reduce((s,x)=>s+x,0); }
+
+// Validar que filas sumen aproximadamente 1
+function validarMatriz(P){
+  for(let i=0;i<P.length;i++){
+    const s = sumaFila(P[i]);
+    if(Math.abs(s-1)>1e-6) return {ok:false, fila:i, suma:s};
+  }
+  return {ok:true};
+}
+
+// Obtener vector estado inicial (one-hot)
+function vectorInicial(nEstados, idx){ const v=Array(nEstados).fill(0); v[idx]=1; return [v]; }
+
+// ======= Logica UI ========
+const btnCalcular = document.getElementById('btn-calcular');
+const btnSimular = document.getElementById('btn-simular');
+const btnReset = document.getElementById('btn-reset');
+const ta = document.getElementById('matriz-textarea');
+const resultadosDiv = document.getElementById('resultados');
+const tablaDiv = document.getElementById('tabla-resultados');
+const selectEstado = document.getElementById('estado-inicial');
+const inputHorizonte = document.getElementById('horizonte');
+
+let chartLine=null, chartDough=null;
+let lastHistoria = null, lastEstados = null, lastHorizonte = null;
+
+function mostrarError(msg){ resultadosDiv.innerHTML=`<div style="color:#c53030"><strong>Error:</strong> ${msg}</div>` }
+
+function formatearPercent(x){ return (x*100).toFixed(4) + '%'; }
+
+function mostrarOk(msg){ resultadosDiv.innerHTML=`<div style="color:#065f46"><strong>Listo:</strong> ${msg}</div>` }
+
+// Mostrar resumen visual y explicacion sencilla
+function mostrarResumen(pDefault, horizonte, historia, estados){
+  // pDefault: probabilidad de default en el horizonte (0..1)
+  const color = pDefault < 0.01 ? '#065f46' : (pDefault < 0.05 ? '#b45309' : '#9b1c1c');
+  const texto = pDefault < 0.01 ? 'Bajo (riesgo bajo)' : (pDefault < 0.05 ? 'Moderado' : 'Alto (considerar accion)');
+
+  // Construir lista corta de probabilidades por ano (solo default por ano)
+  const filas = historia.map((v, i) => `<li><strong>Año ${i}:</strong> ${formatearPercent(v[estados.length-1])}</li>`).join('');
+
+  // leer umbral del input (en %)
+  const umbralInput = document.getElementById('umbral');
+  const umbral = umbralInput ? parseFloat(umbralInput.value) : 5;
+  const excede = (pDefault*100) >= umbral;
+
+  resultadosDiv.innerHTML = `
+    <div class="resumen" role="status" aria-live="polite">
+      <div>
+        <div class="resumen-valor" style="color:${color}">${(pDefault*100).toFixed(4)}%</div>
+        <div class="resumen-text"><span class="badge">Prob. Default</span> ${excede? '<span class="alert-badge" style="margin-left:8px">Alerta</span>':''}</div>
+      </div>
+      <div>
+        <div class="resumen-mensaje"><strong>Interpretacion:</strong> ${texto} — probabilidad de default en ${horizonte} año(s).</div>
+        <div style="margin-top:8px;font-size:13px;color:#475569">Detalles por año:<ul style="margin:6px 0 0 18px;padding:0">${filas}</ul></div>
+      </div>
+    </div>
+  `;
+}
+
+// Exportar historia a CSV
+function exportarCSV(historia, estados, horizonte){
+  if(!historia) return mostrarError('No hay resultados para exportar. Ejecuta "Calcular probabilidades" primero.');
+  let csv = 'Año,' + estados.join(',') + '\r\n';
+  for(let i=0;i<historia.length;i++){
+    const row = [i].concat(historia[i].map(x=> (x*100).toFixed(6)));
+    csv += row.join(',') + '\r\n';
+  }
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `resultados_horizon_${horizonte}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Generar PDF con resumen, tabla y graficos
+async function generarPDF(historia, estados, horizonte){
+  if(!historia) return mostrarError('No hay resultados para generar PDF. Ejecuta "Calcular probabilidades" primero.');
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm', format:'a4'});
+    let y = 14;
+
+    // incluir logo (si URL provista)
+    const logoUrl = document.getElementById('logo-url')?.value?.trim();
+    if(logoUrl){
+      try{
+        // cargar imagen y convertir a dataURL
+        const resp = await fetch(logoUrl);
+        const blob = await resp.blob();
+        const img = await new Promise((res,rej)=>{
+          const reader = new FileReader();
+          reader.onload = ()=>res(reader.result);
+          reader.onerror = rej;
+          reader.readAsDataURL(blob);
+        });
+        // anadir logo (lado izquierdo)
+        doc.addImage(img, 'PNG', 14, 8, 30, 20);
+      }catch(e){ console.warn('No se pudo cargar logo:', e); }
+    }
+
+    // Encabezado
+    doc.setFontSize(16);
+    doc.text('Analisis de Riesgo Crediticio — Informe', 52, y);
+    doc.setFontSize(10);
+    const fecha = new Date().toLocaleString();
+    doc.text('Generado: ' + fecha, 14, y + 6);
+
+    // Parametros
+    const estadoText = document.getElementById('estado-inicial').selectedOptions[0].text;
+    doc.text('Estado inicial: ' + estadoText, 14, y + 14);
+    doc.text('Horizonte (años): ' + horizonte, 100, y + 14);
+    y += 22;
+
+    // Probabilidad de default
+    const pDefault = historia[horizonte][estados.length-1];
+    doc.setFontSize(12);
+    doc.text('Probabilidad de default al horizonte: ' + (pDefault*100).toFixed(4) + '%', 14, y);
+    y += 8;
+
+    // Tabla con autoTable (mas profesional)
+    const head = [['Año'].concat(estados)];
+    const body = historia.map((v,i)=> [String(i)].concat(v.map(x=> (x*100).toFixed(4) + '%')));
+    doc.autoTable({
+      startY: y + 2,
+      head: head,
+      body: body,
+      styles: {fontSize:9, cellPadding:2},
+      headStyles: {fillColor: [31,143,70], textColor:255},
+      theme: 'grid',
+      margin: {left:14, right:14}
+    });
+
+    // move cursor below table
+    y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : y + 80;
+
+    // Insertar capturas de graficos (si existen)
+    try{
+      const canvasLine = document.getElementById('chart-line');
+      const canvasDough = document.getElementById('chart-doughnut');
+      if(canvasLine){
+        const imgLine = canvasLine.toDataURL('image/png');
+        // ajustar tamano manteniendo proporcion
+        doc.addImage(imgLine, 'PNG', 14, y, 180, 60);
+        y += 66;
+      }
+      if(y > 250){ doc.addPage(); y = 14; }
+      if(canvasDough){
+        const imgD = canvasDough.toDataURL('image/png');
+        doc.addImage(imgD, 'PNG', 60, y, 90, 60);
+        y += 66;
+      }
+    }catch(e){ console.warn('No se pudieron capturar las imagenes de los graficos', e); }
+
+    // Pie con recomendacion simple y firma
+    doc.setFontSize(10);
+    const texto = pDefault < 0.01 ? 'Interpretacion: Bajo riesgo de default.' : (pDefault < 0.05 ? 'Interpretacion: Riesgo moderado, considerar seguimiento.' : 'Interpretacion: Riesgo alto — evaluar medidas de mitigacion.');
+    doc.text(texto, 14, y + 8);
+
+    // firma (si provista)
+    const firma = document.getElementById('firma-text')?.value?.trim();
+    if(firma){
+      doc.text('Atentamente,', 140, y + 30);
+      doc.text(firma, 140, y + 38);
+    }
+
+    // Guardar
+    doc.save('analisis_resultado.pdf');
+  }catch(err){ mostrarError('Error generando PDF: ' + err.message); }
+}
+
+function actualizarGraficos(historia, estados){
+  // historia: array de vectores distribucion por año [vectorYear0, vectorYear1, ...]
+  const etiquetas = Array.from({length:historia.length},(_,i)=>i+' año(s)');
+  // elegir paleta según selector (verde por defecto o palette contrastada)
+  const palSelector = document.getElementById('paleta-select');
+  const palType = palSelector ? palSelector.value : 'verde';
+  let palette;
+  if(palType === 'contrastada'){
+    // paleta contrastada: mezclas de verde, azul, naranja y morado para distinguir series
+    palette = ['#0b662a','#1f8f46','#f97316','#0ea5e9','#8b5cf6','#f7c948','#ef4444'];
+  } else {
+    // paleta verde profesional (por defecto)
+    palette = ['#0b662a','#1f8f46','#66c28a','#9fe7b0','#c8f1d3','#84d48f','#4fae57'];
+  }
+
+  const datasets = estados.map((e,idx)=>({
+    label: e,
+    data: historia.map(v=>v[idx]),
+    fill: false,
+    borderColor: palette[idx % palette.length],
+    backgroundColor: palette[idx % palette.length],
+    borderWidth: 2,
+    tension: 0.25,
+    pointRadius: 3,
+    pointHoverRadius: 6,
+    pointBackgroundColor: palette[idx % palette.length]
+  }));
+
+  // Line chart: mostrar ticks y tooltips en porcentaje
+  const ctx = document.getElementById('chart-line').getContext('2d');
+  if(chartLine) chartLine.destroy();
+  chartLine = new Chart(ctx,{
+    type:'line',
+    data:{labels:etiquetas,datasets:datasets},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{
+          position:'top',
+          labels:{boxWidth:14,padding:12},
+          // onClick por defecto permite ocultar/mostrar series; mantener comportamiento esperado
+          onClick: function(e, legendItem, legend) {
+            const index = legendItem.datasetIndex;
+            const ci = legend.chart;
+            const meta = ci.getDatasetMeta(index);
+            // toggle hidden
+            meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+            ci.update();
+          }
+        },
+        tooltip:{
+          callbacks:{
+            label: function(context){
+              const v = context.parsed.y;
+              return context.dataset.label + ': ' + (v*100).toFixed(2) + '%';
+            }
+          }
+        }
+      },
+      scales:{
+        y:{
+          beginAtZero:true,
+          ticks:{
+            callback:function(val){ return (val*100).toFixed(0) + '%'; }
+          }
+        }
+      }
+    }
+  });
+
+  // Doughnut final distribution: usar la misma paleta pero con contraste y tooltips formateados
+  const ctx2 = document.getElementById('chart-doughnut').getContext('2d');
+  if(chartDough) chartDough.destroy();
+  const ultimo = historia[historia.length-1];
+  chartDough = new Chart(ctx2,{
+    type:'doughnut',
+    data:{labels:estados,datasets:[{data:ultimo,backgroundColor: palette.slice(0,estados.length),borderColor:'#ffffff',borderWidth:2}]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'bottom',labels:{boxWidth:12}},
+        tooltip:{
+          callbacks:{
+            label: function(context){
+              const v = context.parsed;
+              return context.label + ': ' + (v*100).toFixed(2) + '%';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function generarTabla(historia, estados){
+  let html = '<table><thead><tr><th>Año</th>' + estados.map(e=>`<th>${e}</th>`).join('') + '</tr></thead><tbody>';
+  for(let i=0;i<historia.length;i++){
+    html += '<tr><td>' + i + '</td>' + historia[i].map(x=>`<td>${(x*100).toFixed(2)}%</td>`).join('') + '</tr>';
+  }
+  html += '</tbody></table>';
+  tablaDiv.innerHTML = html;
+}
+
+btnCalcular.addEventListener('click', ()=>{
+  try{
+    const P = parsearMatriz(ta.value);
+    const valid = validarMatriz(P);
+    if(!valid.ok) return mostrarError('La fila ' + (valid.fila+1) + ' suma ' + valid.suma.toFixed(6) + ' (debe sumar 1)');
+    const idxInicial = parseInt(selectEstado.value,10);
+    const horizonte = parseInt(inputHorizonte.value,10);
+    const estados = ['AAA','AA','A','BBB','BB','B','D'];
+    // Historia año 0 (estado inicial)
+    const v0 = vectorInicial(P.length, idxInicial)[0];
+
+    const historia = [v0.slice()];
+    let Ppot = null;
+    for(let t=1;t<=horizonte;t++){
+      Ppot = potenciaMatriz(P,t);
+      // multiplicar vectores: v0 * P^t  (v0 treated as 1 x n)
+      const distrib = multiplicarMatrices([v0], Ppot)[0];
+      historia.push(distrib.map(x=>Math.max(0, x))); // evitar negativos por imprecisiones
+    }
+
+    generarTabla(historia, estados);
+    actualizarGraficos(historia, estados);
+    // Probabilidad acumulada de default al horizonte
+    const pDefault = historia[horizonte][estados.length-1];
+    // Guardar ultimos resultados para export / referencia
+    lastHistoria = historia;
+    lastEstados = estados;
+    lastHorizonte = horizonte;
+    // Mostrar resumen visual y explicacion sencilla
+    mostrarResumen(pDefault, horizonte, historia, estados);
+  }catch(err){
+    mostrarError(err.message);
+  }
+});
+
+// Simular una trayectoria aleatoria (trayectoria individual)
+function pasoAleatorio(vectorProb){
+  // recibe vector de probabilidades que suma 1, devuelve indice seleccionado
+  const r = Math.random();
+  let acumulado = 0;
+  for(let i=0;i<vectorProb.length;i++){
+    acumulado += vectorProb[i];
+    if(r <= acumulado) return i;
+  }
+  return vectorProb.length-1;
+}
+
+btnSimular.addEventListener('click', ()=>{
+  try{
+    const P = parsearMatriz(ta.value);
+    const valid = validarMatriz(P);
+    if(!valid.ok) return mostrarError('La fila ' + (valid.fila+1) + ' suma ' + valid.suma.toFixed(6) + ' (debe sumar 1)');
+    const idxInicial = parseInt(selectEstado.value,10);
+    const horizonte = parseInt(inputHorizonte.value,10);
+    const estados = ['AAA','AA','A','BBB','BB','B','D'];
+
+    // Simular una trayectoria
+    const trayectoria = [idxInicial];
+    let actual = idxInicial;
+    for(let t=1;t<=horizonte;t++){
+      const probs = P[actual];
+      actual = pasoAleatorio(probs);
+      trayectoria.push(actual);
+      if(actual === estados.length-1) break; // si llega a default, se detiene
+    }
+
+    // mostrar trayectoria
+    let texto = '<strong>Trayectoria simulada:</strong> ' + trayectoria.map(i=>estados[i]).join(' → ');
+    resultadosDiv.innerHTML = texto;
+  }catch(err){ mostrarError(err.message); }
+});
+
+btnReset.addEventListener('click', ()=>{
+  ta.value = `0.90,0.07,0.02,0.00,0.00,0.00,0.01\n0.03,0.88,0.07,0.01,0.00,0.00,0.01\n0.01,0.06,0.85,0.06,0.01,0.00,0.01\n0.00,0.02,0.07,0.78,0.10,0.02,0.01\n0.00,0.00,0.02,0.08,0.75,0.12,0.03\n0.00,0.00,0.00,0.04,0.12,0.70,0.14\n0.00,0.00,0.00,0.00,0.00,0.00,1.00`;
+  resultadosDiv.innerHTML=''; tablaDiv.innerHTML=''; if(chartLine) chartLine.destroy(); if(chartDough) chartDough.destroy();
+});
+
+// handler export CSV
+const btnExport = document.getElementById('btn-export');
+if(btnExport){
+  btnExport.addEventListener('click', ()=>{
+    exportarCSV(lastHistoria, lastEstados, lastHorizonte || document.getElementById('horizonte').value);
+  });
+}
+
+// Cuando el usuario cambie la paleta, re-renderizar los graficos con la nueva paleta si ya hay resultados
+const palSelector = document.getElementById('paleta-select');
+if(palSelector){
+  palSelector.addEventListener('change', ()=>{
+    if(lastHistoria && lastEstados) actualizarGraficos(lastHistoria, lastEstados);
+  });
+}
+
+// Handler PDF
+const btnPdf = document.getElementById('btn-pdf');
+if(btnPdf){
+  btnPdf.addEventListener('click', ()=>{
+    generarPDF(lastHistoria, lastEstados, lastHorizonte || parseInt(document.getElementById('horizonte').value,10));
+  });
+}
+
+// Inicializacion rapida: calcular con valores por defecto al cargar
+window.addEventListener('load', ()=>{ document.getElementById('btn-calcular').click(); });
+
+</script>
+</body>
+</html>
